@@ -146,7 +146,7 @@ class MyDataSet(Dataset):
 
 
 # do learning
-def train(session, comSide):
+def train(session, from_model, to_model):
     # q = '''MATCH (f:Position { turn : 1 , color : "''' + comSide + '''" })-[m:Move]->(:Position) 
     # RETURN f.fen, m.uci, m.win, m.draw, (m.win + m.draw + m.lose) as games'''
     q = '''MATCH (f:Position { turn : 1 })-[m:Move]->(:Position) 
@@ -184,11 +184,15 @@ def train(session, comSide):
     dataloader_from = DataLoader(dataset_from, batch_size=2048)
     dataloader_to = DataLoader(dataset_to, batch_size=2048)
 
+    ####### whether learning from scratch or not ###
+
     # model_from = CNN.ChessNet().to(device)
     # model_to = CNN.ChessNet().to(device)
 
-    model_from = torch.load(".\\model_from_hikaru_.pt")
-    model_to = torch.load(".\\model_to_hikaru_.pt")
+    model_from = torch.load(from_model)
+    model_to = torch.load(to_model)
+
+    #####
 
     model_from.train()
     model_to.train()
@@ -229,8 +233,9 @@ def train(session, comSide):
         print(f"{epoch}/{epochs} _ cost_from : {cost_from.item()} _ cost_to : {cost_to.item()}")
 
 
-    torch.save(model_from,".\\model_from_hikaru_.pt")
-    torch.save(model_to,".\\model_to_hikaru_.pt")
+    torch.save(model_from,from_model)
+    torch.save(model_to,to_model)
+
     return model_from,model_to, device
 
 

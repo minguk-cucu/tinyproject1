@@ -6,14 +6,20 @@ import evaluate
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import threading
 import time
 from CNN import CNN
 
-############
+############ parameters ####
 username = 'Hikaru'
 gameType = 'blitz'
 rule = 'chess'
+date = '"2023/02" , "2023/03"' # DATE MUST FOLLOW THIS FORM : "YYYY/MM" ( including double quotes )
+neo4j_port = 'bolt://localhost:7687'
+neo4j_user = 'neo4j'
+neo4j_pw = '0000'
+
+from_model = '.\\model_from_hikaru_.pt'
+to_model = '.\\model_to_hikaru_.pt'
 ############
 
 
@@ -229,44 +235,45 @@ def convertMoves(color):
 
 
 #################################### main ###############################################
-driver = GraphDatabase.driver('bolt://localhost:7687', auth = ('neo4j', 'bruce89p13'))
+driver = GraphDatabase.driver(neo4j_port, auth = (neo4j_user, neo4j_pw))
 session = driver.session()
 
 
-# q = 'MATCH ( g:Game ) DELETE g'
-# session.run(q)
+q = 'MATCH ( g:Game ) DELETE g'
+session.run(q)
 
-# q = 'CREATE INDEX position_att IF NOT EXISTS FOR (f:Position) ON (f.fen, f.win, f.lose, f.draw, f.color, f.turn)'
-# session.run(q)
-# q = 'CREATE INDEX move_att IF NOT EXISTS FOR (m:Move) ON (m.uci, m.san, m.color, m.win, m.lose, m.draw)'
-# session.run(q)
+q = 'CREATE INDEX position_att IF NOT EXISTS FOR (f:Position) ON (f.fen, f.win, f.lose, f.draw, f.color, f.turn)'
+session.run(q)
+q = 'CREATE INDEX move_att IF NOT EXISTS FOR (m:Move) ON (m.uci, m.san, m.color, m.win, m.lose, m.draw)'
+session.run(q)
 
-# print("Fetching from Chess.com database")
+print("Fetching from Chess.com database")
 
-# q = '''UNWIND [ "2023/02" ] as ym
-#  WITH ("https://api.chess.com/pub/player/''' + username + '''/games/" + ym) as url
-#  CALL apoc.load.json(url) YIELD value
-#  UNWIND value.games as game
-#  WITH game.time_class as type, game.pgn as raw, game.white.result as whiteResult, game.white.username as whiteUser, game.black.result as blackResult, game.black.username as blackUser, game.rules as rule
-#  WHERE type = "''' + gameType + '''" AND rule = "''' + rule + '''"
-#  WITH whiteUser, whiteResult, blackUser, blackResult, apoc.text.replace(coalesce(apoc.text.regexGroups(raw, "(\\n\\n)(.+)( (0|1|(1/2))-(0|1|(1/2)))")[0][2], ""), "(\\{.{1,17}\\})", "") as moves
-#  WHERE moves <> ""
-#  MERGE (g:Game { whiteUser: whiteUser, whiteResult: whiteResult, blackUser: blackUser, blackResult: blackResult, moves: moves })'''
+# IF WE WANT TO CHANGE DATE BOUNDARIES, 
+q = '''UNWIND [ ''' + date + ''' ] as ym
+ WITH ("https://api.chess.com/pub/player/''' + username + '''/games/" + ym) as url
+ CALL apoc.load.json(url) YIELD value
+ UNWIND value.games as game
+ WITH game.time_class as type, game.pgn as raw, game.white.result as whiteResult, game.white.username as whiteUser, game.black.result as blackResult, game.black.username as blackUser, game.rules as rule
+ WHERE type = "''' + gameType + '''" AND rule = "''' + rule + '''"
+ WITH whiteUser, whiteResult, blackUser, blackResult, apoc.text.replace(coalesce(apoc.text.regexGroups(raw, "(\\n\\n)(.+)( (0|1|(1/2))-(0|1|(1/2)))")[0][2], ""), "(\\{.{1,17}\\})", "") as moves
+ WHERE moves <> ""
+ MERGE (g:Game { whiteUser: whiteUser, whiteResult: whiteResult, blackUser: blackUser, blackResult: blackResult, moves: moves })'''
 
-# session.run(q)
+session.run(q)
 
-# print("Fetching games from Chess.com has Done !")
-# t1 = time.time()
-# print("Convert Games into Graph . . . ")
-# board =chess.Board()
+print("Fetching games from Chess.com has Done !")
+t1 = time.time()
+print("Convert Games into Graph . . . ")
+board =chess.Board()
 
-# convertMoves("WHITE")
-# convertMoves("BLACK")
+convertMoves("WHITE")
+convertMoves("BLACK")
 
 
-# print("Converting has Done !")
-# t2 = time.time()
-# print(f"Converting time : {t2-t1} s")
+print("Converting has Done !")
+t2 = time.time()
+print(f"Converting time : {t2-t1} s")
 #######################################################
 
 
@@ -274,10 +281,15 @@ session = driver.session()
 t1 = time.time()
 print("doing ML based on your records . . ")
 
-model_from,model_to, device = train.train(session, 'WHITE')
-# model_from = torch.load(".\\model_from_.pt")
-# model_to = torch.load(".\\model_to_.pt")
+##### wheter learning from scratch or not
+
+model_from,model_to, device = train.train(session, from_model, to_model)
+
+# model_from = torch.load(from_model)
+# model_to = torch.load(to_model)
 # device = "cuda"
+
+####
 
 print("ML done")
 t2 = time.time()

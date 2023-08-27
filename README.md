@@ -6,6 +6,8 @@
 If you have any question or anything, please contact me : minkuk0118@gmail.com . Thank you.
 
 
+윈도우 11 환경에서 개발하고 실행하였습니다.
+Programmed & Executed in Winodows 11 environment
 
 # 개요
 
@@ -132,6 +134,18 @@ DB에 있는 수들을 제외하고, 기계학습을 통해 선택한 수들을 
 
 -------------------------------------
 
+# 실행해보고 싶다면
+
+chess.py , pytorch, neo4j.py 를 install 하시고, neo4j DB를 다운로드 받아야합니다.
+
+그 후 neo4j DB를 실행시키고, APOC plugin을 활성화 합니다.  
+( 필요하다면 neo4j DB의 dbms.memory.transaction.total.max 제한을 없애야 ( = 0 ) 동작할 수 있습니다. )
+
+db.py의 parameter들을 수정한 후 실행시키면 됩니다.
+
+
+--------------------------------------
+
 # Abstract
 
 I've often thought that I could fight against myself in games like judo or chess, where you must need a opponent to play with.
@@ -255,3 +269,13 @@ b ) I encoded FEN to train, but is there a better way to encode it ?
 c ) Is it possible to improve in selecting a move ?
 
 
+----------------------------------
+
+# In case you want to execute my program
+
+Install chess.py, pytorch, neo4j.py , and neo4j Database
+
+Execute Neo4j DB, activate ( install ) APOC plugin
+( If needed, set free ( set zero ) of dbms.memory.transaction.total.max to run properly)
+
+modify parameters in db.py , and excute and follow instructions
