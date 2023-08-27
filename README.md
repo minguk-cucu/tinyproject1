@@ -275,7 +275,7 @@ c ) Is it possible to improve in selecting a move ?
 
 Install chess.py, pytorch, neo4j.py , and neo4j Database
 
-Execute Neo4j DB, activate ( install ) APOC plugin
+Execute Neo4j DB, activate ( install ) APOC plugin  
 ( If needed, set free ( set zero ) of dbms.memory.transaction.total.max to run properly)
 
 modify parameters in db.py , and excute and follow instructions
