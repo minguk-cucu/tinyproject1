@@ -20,7 +20,11 @@ If you have any question or anything, please contact me : minkuk0118@gmail.com .
 2. 내가 둔 경기들을 바탕으로 나와 비슷한 성향의 인공지능을 만들어서 대국하기
 입니다.
 
---
+
+
+
+
+# 구현
 
 체스는 상대와 내가 한 번씩 번갈아가며 수를 둡니다.
 양 player는 자신에게 주어진 position을 보고, 가장 적합한 수( move)를 둡니다.
@@ -28,9 +32,6 @@ If you have any question or anything, please contact me : minkuk0118@gmail.com .
 일반적으로 체스에서 position을 표현할때 FEN 이라는 형식을 따릅니다.
 move를 표현할 때에는 SAN, UCI 형식을 모두 사용합니다.
 
-
-# 구현
---
 ## 1. 내가 둔 경기들을 수집하여 어떤 상황( position )에서 어떤 수( move )를 두었는지 파악하기
 
 
@@ -42,7 +43,7 @@ Chess.com api를 이용해 특정 player가 둔 수를 수집할 수 있습니�
 가져온 게임들을 바탕으로 각 포지션에 대한 수를 그래프로 표현합니다.
 ( node는 position이고, node사이를 잇는 edge는 move입니다. )
 
---
+
 ## 2. 내가 둔 경기들을 바탕으로 나와 비슷한 성향의 인공지능을 만들어서 대국하기
 
 구현하기 위하여 크게
@@ -55,19 +56,19 @@ b) player가 처음보는 position인 경우
 neo4j에 있는 position을 분석합니다.
 해당 position에서 이미 두어보았던 수들 중, 승률 혹은 승률+무승부률( 이하 승-무승부률 )이 특정 기준을 넘는 수들 중 하나를 채택합니다.
 
-실제 구현은,
-승률이 0.5를 초과하는 수
-없다면, 승-무승부률이 0.5를 초과하는 수
-없다면, 승률이 0.4를 초과하는 수
-없다면, 승-무승부률이 0.4를 초과하는 수
-없다면, 승-무승부률이 0.3을 초과하는 수
-없다면, 승-무승부률이 0.0을 초과하는 수
+실제 구현은,  
+승률이 0.5를 초과하는 수  
+없다면, 승-무승부률이 0.5를 초과하는 수  
+없다면, 승률이 0.4를 초과하는 수  
+없다면, 승-무승부률이 0.4를 초과하는 수  
+없다면, 승-무승부률이 0.3을 초과하는 수  
+없다면, 승-무승부률이 0.0을 초과하는 수  
 없다면, b) 에서 구현할 기계학습을 통하여 새로운 수를 채택하는 방법으로 구현하였습니다.
 
 채택할 때에는,
 수를 두어봤던 횟수에 가중치를 두어 랜덤으로 채택합니다.
 
-이를테면,
+이를테면,  
 특정 position에서 e4와 d4만이 승률이 0.5를 초과하는 수이며,
 e4가 200번 두어졌고, d4가 100번 두어졌다면,
 e4는 200/300의 확률로, d4는 100/300의 확률로 선택됩니다.
@@ -110,7 +111,6 @@ to move 에 대한 model을 따로 계산하였습니다.
 
 
 
---
 
 # 결과
 DB에 있는 수들을 제외하고, 기계학습을 통해 선택한 수들을 지켜봤을 때,
@@ -121,13 +121,14 @@ DB에 있는 수들을 제외하고, 기계학습을 통해 선택한 수들을 
 
 2 ) Chess.com 레이팅 3300대, FIDE 레이팅 2800+ 인 프로게이머 Hikaru 가 Bullet 룰을 바탕으로 둔 게임을 학습시켰을 때
 
---
-
 # 발전할 점
 
 1 ) 좀 더 많은 경기를 학습시키면 좋을지 ?
+
 2 ) FEN을 CNN으로 학습시키기 좋게 encoding하였는데, encoding 하는 방법 중 더 좋은 방법이 있었던 것은 아닐지 ?
+
 3 ) 수를 선택하는 과정에서 발전할 수 있는 것은 아닌지 ?
+
 
 -------------------------------------
 
@@ -156,7 +157,6 @@ Both players analyze their positions and make the most proper move. ( or winnabl
 Generally, when representing a certain position in chess, we use FEN form.
 plus when it comes to a certain move, we use UCI or SAN form.
 
---
 
 ## 1. Gathering my actual games so that understand myself that which move I made in which position.
 
@@ -166,7 +166,6 @@ Using the APOC plugin in the Neo4j Database, we could collect games and moves pl
 Graph the moves for each position based on the gathered games.
 ( A node is a position, and an edge is a move )
 
---
 
 ## 2. Based on my actual games, make a chess engine that has similar tendencies to me  ( & actually play game against that engine )
 
@@ -174,7 +173,6 @@ When implementing number 2. feature, we've noticed that there are two situation 
 a ) a position that a player has already played before
 b ) a position that a player has never been before
 
---
 
 ### a ) a position that a player has already played before
 
@@ -182,25 +180,24 @@ A move & a position that a player has already seen before have existed in Neo4j 
 Therefore we would analyze a position in Database.
 Amongst moves that already played in a particular position, I would pick one where the win rate or win+draw rate is above a certain threshold.
 
-In acutal implementation,
-pick a move that its win rate is greater than 0.5
-If that doesn't exist, pick one that its win+draw rate is greater than 0.5
-If that doesn't exist, pick one that its win rate is greater than 0.4
-If that doesn't exist, pick one that its win+draw rate is greater than 0.5
-If that doesn't exist, pick one that its win+draw rate is greater than 0.4
-If that doesn't exist, pick one that its win+draw rate is greater than 0.0
+In acutal implementation,  
+pick a move that its win rate is greater than 0.5  
+If that doesn't exist, pick one that its win+draw rate is greater than 0.5  
+If that doesn't exist, pick one that its win rate is greater than 0.4  
+If that doesn't exist, pick one that its win+draw rate is greater than 0.5  
+If that doesn't exist, pick one that its win+draw rate is greater than 0.4  
+If that doesn't exist, pick one that its win+draw rate is greater than 0.0  
 If that doesn't exist at all, pick one that generated by chess engine, which will be implemented in the b ) situation.
 
-When it comes to must pick one of moves that meet the criteria,
+When it comes to must pick one of moves that meet the criteria,  
 I would ramdomly pick one by weighting the number of times it has been played.
 
-For example,
+For example,  
 In a certain position, where e4 and d4 are the only moves with a win rate greater than 0.5,
 If e4 has been played 200 times and d4 has been played 100 times,
 e4 is chosen with a probability of 200/300 and d4 with a probability of 100/300.
 
 
---
 
 ### b ) a position that a player has never been before
 
@@ -231,13 +228,10 @@ I would thought that 8x8 size chess board should not be modification with size b
 so that I would apply Batch normalization only.
 I implemented it as watched Youtube Video.
 
---
 ### Loss Function.
 
 Loss Function is Softmax ( torch.nn.CrossEntropyLoss() )
 to choose a square out of 64 squares.
-
---
 
 ### pick a move
 select a move where the sum of the from_tensor value and the to_tensor value is the maximum, among the legal moves.
@@ -255,7 +249,9 @@ but in many cases they are illogical.
 # Improvements
 
 a ) Would it be good to gather more games?
+
 b ) I encoded FEN to train, but is there a better way to encode it ?
+
 c ) Is it possible to improve in selecting a move ?
 
 
