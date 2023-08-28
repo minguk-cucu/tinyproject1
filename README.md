@@ -121,7 +121,7 @@ DB에 있는 수들을 제외하고, 기계학습을 통해 선택한 수들을 
 
 1 ) Chess.com 레이팅 1200대인 사람이 Rapid ( 서로 10분 내외의 시간을 가지고 두는 게임 ) 룰을 바탕으로 둔 게임을 학습시켰을 때
 
-2 ) Chess.com 레이팅 3300대, FIDE 레이팅 2800+ 인 프로게이머 Hikaru 가 Bullet 룰을 바탕으로 둔 게임을 학습시켰을 때
+2 ) Chess.com 레이팅 3300대, FIDE 레이팅 2800+ 인 프로게이머 Hikaru 가 Blitz 룰을 바탕으로 둔 게임을 학습시켰을 때
 
 # 발전할 점
 
@@ -254,7 +254,7 @@ but in many cases they are illogical.
 
 1 ) Trained by data of a person with a Chess.com rating 1200s ( Rapid rule )
 
-2 ) Trained by data of a person with a Chess.com rating 3300s, FIDE rating 2800+, ( Professional chess player, Hikaru , in Bullet rule)
+2 ) Trained by data of a person with a Chess.com rating 3300s, FIDE rating 2800+, ( Professional chess player, Hikaru , in Blitz rule)
 
 
 # Improvements

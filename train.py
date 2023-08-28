@@ -147,6 +147,14 @@ class MyDataSet(Dataset):
 
 # do learning
 def train(session, from_model, to_model):
+
+    ###
+    batch_size = 2048
+    lr = 1e-5
+    epochs = 500
+    ###
+
+
     # q = '''MATCH (f:Position { turn : 1 , color : "''' + comSide + '''" })-[m:Move]->(:Position) 
     # RETURN f.fen, m.uci, m.win, m.draw, (m.win + m.draw + m.lose) as games'''
     q = '''MATCH (f:Position { turn : 1 })-[m:Move]->(:Position) 
@@ -181,8 +189,8 @@ def train(session, from_model, to_model):
     dataset_from = MyDataSet(x,y_from,device)
     dataset_to = MyDataSet(x,y_to,device)
 
-    dataloader_from = DataLoader(dataset_from, batch_size=2048)
-    dataloader_to = DataLoader(dataset_to, batch_size=2048)
+    dataloader_from = DataLoader(dataset_from, batch_size=batch_size)
+    dataloader_to = DataLoader(dataset_to, batch_size=batch_size)
 
     ####### whether learning from scratch or not ###
 
@@ -198,13 +206,10 @@ def train(session, from_model, to_model):
     model_to.train()
     
     criterion_from = nn.CrossEntropyLoss().to(device)
-    optitmizer_from = optim.Adam(model_from.parameters(), lr=1e-5)
+    optitmizer_from = optim.Adam(model_from.parameters(), lr= lr)
 
     criterion_to = nn.CrossEntropyLoss().to(device)
-    optitmizer_to = optim.Adam(model_to.parameters(), lr = 1e-5)
-
-    epochs = 500
-
+    optitmizer_to = optim.Adam(model_to.parameters(), lr = lr)
 
     for epoch in range(epochs+1):
         for batch_idx, samples in enumerate(dataloader_from):
