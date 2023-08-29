@@ -1,5 +1,5 @@
-## 결론적으로 말하면 이 프로그램은 효과적이지 않습니다. 더 많은 발전이 필요합니다. 계속 수정중입니다.
-## Consequently speaking, the program is not effective and needs more development. Keep Editing.. // English description below
+## 결론적으로 말하면 이 프로그램은 효과적이지 않습니다. 더 많은 발전이 필요합니다.
+## Consequently speaking, the program is not effective and needs more development.  // English description below
 
 궁금하신 점이나 하고픈 말이 있으시다면 minkuk0118@gmail.com 으로 연락 부탁드립니다. 감사합니다.
 
@@ -133,7 +133,7 @@ DB에 있는 수들을 제외하고, 기계학습을 통해 선택한 수들을 
 batch size = 1024, epochs = 1000, lr = 1e-5
 
 ### Engine이 백
-### MyLittleEngine vs. lichess.org DB ( 1200대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1025와 같음 ) <sup>[3](#footnote_3)</sup> ) 
+### MyLittleEngine vs. lichess.org DB ( 1200대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1025와 같음 <sup>[3](#footnote_3)</sup> ) 
 
 1.e4 e5 2. Nf3 Nc63. Bc4 Nf6 4. Ng5 d5 5. exd5 Nxd5 6. Nxf7 Kxf7 7. Qf3+ Ke8 8. Bxd5 Nd4 9. Qf7# 1-0
 
@@ -400,5 +400,7 @@ modify parameters in db.py , and execute and follow instructions
 
 ------------------------------------
 <a name="footnote_1">1</a>: https://vladbatushkov.medium.com/one-month-graph-challenge-chess-44241a013378
-<a name="footnote_2">2</a>: https://youtu.be/aOwvRvTPQrs?si=asylQGXBEIyju6XP
-<a name="footnote_3">3</a>: https://chessgoals.com/rating-comparison/#lichesschesscom
+
+<a name="footnote_2">2</a>: https://youtu.be/aOwvRvTPQrs?si=asylQGXBEIyju6XP  
+
+<a name="footnote_3">3</a>: https://chessgoals.com/rating-comparison/#lichesschesscom  
