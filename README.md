@@ -3,7 +3,7 @@
 
 궁금하신 점이나 하고픈 말이 있으시다면 minkuk0118@gmail.com 으로 연락 부탁드립니다. 감사합니다.
 
-If you have any question or anything, please contact me : minkuk0118@gmail.com . Thank you.
+If you have any question or anything, please feel free to contact me : minkuk0118@gmail.com . Thank you.
 
 
 윈도우 11 환경에서 개발하고 실행하였습니다.
