@@ -40,10 +40,14 @@ move를 표현할 때에는 SAN, UCI 형식을 모두 사용합니다.
 1 번의 기능을 구현하기 위하여, neo4j database를 이용하였습니다.
 
 neo4j database의 APOC plugin을 이용하면,
-Chess.com api를 이용해 특정 player가 둔 수를 수집할 수 있습니다.
+Chess.com api를 이용해 특정 player가 둔 수를 수집할 수 있습니다. <sup>[1](#footnote_1)</sup>
 
 가져온 게임들을 바탕으로 각 포지션에 대한 수를 그래프로 표현합니다.
 ( node는 position이고, node사이를 잇는 edge는 move입니다. )
+
+![graph_hikaru](./pic/1.jpg)
+![pos_info](./pic/2.jpg)
+![move_info](./pic/3.jpg)
 
 
 ## 2. 내가 둔 경기들을 바탕으로 나와 비슷한 성향의 인공지능을 만들어서 대국하기
@@ -99,7 +103,7 @@ to tensor에서 from tensor에서 고른 기물을 움직일 칸을 고릅니다
 
 ### CNN
 은 pooling 을 하여 기존의 8x8 사이즈의 체스판 size를 변형시키면 안 된다고 판단하였습니다.
-Batch normalization 만 진행하였고 이는 youtube를 참고하여 구현하였습니다.
+Batch normalization 만 진행하였고 이는 youtube를 참고하여 구현하였습니다. <sup>[2](#footnote_2)</sup>
 
 ### Loss Function
 
@@ -119,9 +123,67 @@ DB에 있는 수들을 제외하고, 기계학습을 통해 선택한 수들을 
 몇몇 개의 수는 논리적이고 괜찮은 수를 두지만
 많은 경우에 비상식적인 수를 둡니다.
 
-1 ) Chess.com 레이팅 1200대인 사람이 Rapid ( 서로 10분 내외의 시간을 가지고 두는 게임 ) 룰을 바탕으로 둔 게임을 학습시켰을 때
 
-2 ) Chess.com 레이팅 3300대, FIDE 레이팅 2800+ 인 프로게이머 Hikaru 가 Blitz 룰을 바탕으로 둔 게임을 학습시켰을 때
+* lichess.org 이라는, 전세계 플레이어들이 해당 사이트에서 둔 수를 DB에 저장하고 무료로 제공하는 사이트가 있습니다.
+* 테스트를 위해 해당 사이트를 사용하였습니다. 특정 position에서 가장 많이 두어진 수를 고를 예정입니다.
+
+![lichess.org_DB](./pic/4.jpg)
+
+## 1 ) Chess.com 레이팅 1200대인 사람이 Rapid ( 서로 10분 내외의 시간을 가지고 두는 게임 ) 룰을 바탕으로 둔 게임을 학습시켰을 때
+batch size = 1024, epochs = 1000, lr = 1e-5
+
+### Engine이 백
+### MyLittleEngine vs. lichess.org DB ( 1200대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1025와 같음 ) <sup>[3](#footnote_3)</sup> ) 
+
+1.e4 e5 2. Nf3 Nc63. Bc4 Nf6 4. Ng5 d5 5. exd5 Nxd5 6. Nxf7 Kxf7 7. Qf3+ Ke8 8. Bxd5 Nd4 9. Qf7# 1-0
+
+-Neo4j DB에 있는 move들 만으로 Engine 승 
+
+### MyLittleEngine vs. lichess.org DB ( 1800대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1470 )
+
+1.e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6 8. Bd3 h6 9. Ne4 Nxe4 10. Bxe4 Bc5 **( 여기서부터, 기계학습으로 선택하는 수 )**11. Nc3 O-O 12. d3 f5 13. Bd5+??? **( 어이없는 실수 .. 더이상 lichess.org DB에 move가 존재하지 않아서 여기서부터는 제가 직접 흑으로 두었습니다. )** cxd5 14. d4 Bxd4 15. Qxd4 exd4 16. Bf4 dxc3 17. bxc3 Qe7+ 18. Kd2 Nc4+ 19. Kd3 Ba6 20. g3 Nd6+ 21. c4 Qe4+ 22. Kd2 Nxc4+ 23. Kd1 Qxh1+ 24. Ke2 Qxa1 25. c3 Qxc3 26. a3 Ne5+ 27. Kd1 Qd3+ 28. Bd2 Rab8 29. g4 Rb1#   0-1
+
+
+----
+### Engine이 흑
+### lichess.org DB ( 1200대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1025와 같음 )  vs. MyLittleEngine
+
+
+1.e4 e6 2. d4 c5 3. Nf3 cxd4 4. Nxd4 Nc6 5. Nxc6 bxc6 6. Nc3 Nf6 7. Bg5 Bb4 8. e5 **( 여기서부터, 기계학습으로 선택하는 수 )**  Nd5??? 9. Bxd8 Bxc3+ **( 마찬가지로 더이상 lichess.org DB에 move가 존재하지 않아 제가 직접 백으로 두었습니다. )** 10. bxc3 Nc7 11. Bxc7 d5 12. exd6 Ba6 13. Bxa6 Rb8 14. Bxb8 O-O 15. d7 Rxb8 16. d8=Q+ Rxd8 17. Qxd8#    1-0
+
+
+### lichess.org DB ( 1800대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1470 )  vs. MyLittleEngine
+
+1.e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6 5. Nc3 Qc7 6. Be3 a6 7. Be2 **( 여기서부터, 기계학습으로 선택하는 수 )** Nf6 8. O-O Bd6 9. f4 O-O 10. e5 Bb4 **( 더이상 lichess.org DB에 move가 존재하지 않아 제가 직접 백으로 두었습니다. )** 11. exf6 d6 12. Qd3 Ne5??? 13. fxe5 Qxc3??? 14. bxc3 Bc5 15. Rf3 Re8 16. Rg3 Bb6 17. Rxg7+ Kh8 18. Qxh7#   1-0
+
+
+
+## 2 ) Chess.com 레이팅 3300대, FIDE 레이팅 2800+ 인 프로게이머 Hikaru 가 Blitz 룰을 바탕으로 둔 게임을 학습시켰을 때
+batch size = 1024, epochs = 500, lr = 1e-5
+
+### Engine이 백
+### MyLittleEngine vs. lichess.org DB ( 1200대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1025와 같음 ) 
+
+1.e4 e5 2. Bc4 Nf6 3. d3 Bc5 4. Nf3 d6 5. c3 Ng4 6. Nbd2 Nxf2 **( 여기서부터, 기계학습으로 선택하는 수 )** 7. O-O??? Nxd1+ 8. Rf2 **( 더이상 lichess.org DB에 move가 존재하지 않아 제가 직접 흑으로 두었습니다. )** Bxf2+  9. Kf1 Qf6 10. Nb3 Bg4 11. Ke2 Bxf3+ 12. gxf3 Nxc3+ 13. Kxf2 Qh4+ 14. Ke3 Qxh2 15. Ba6??? bxa6 16. Na5 Qe2#  0-1
+
+### MyLittleEngine vs. lichess.org DB ( 1800대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1470 )
+
+1.e4 e5 2. Nc3 Nf6 3. Bc4 Bc5 4. d3 d6 5. Qf3 Bg4 **( 여기서부터, 기계학습으로 선택하는 수 )** 6.h3??? **( 더이상 lichess.org DB에 move가 존재하지 않아 제가 직접 백으로 두었습니다. )** Bxf3 7. Nxf3 O-O 8. Be6 Qe7 9. O-O Qxe6 10. Re1 Nc6 11. Nh4 Nd4 12. Nd5 Nxd5 13. c3 Nf4 14. cxd4 Bxd4 15. g3 Nxd3 16. Re3 Bxe3 17. Bxe3 Qxh3 18. Ng6 fxg6 19. Re1 Nxe1 20. f3 Qg2#  0-1
+
+-너무 어이없는 실수가 많음 ..
+
+
+----
+### Engine이 흑
+### lichess.org DB ( 1200대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1025와 같음 )  vs. MyLittleEngine
+
+1.e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6 8. Ba4 **( 여기서부터, 기계학습으로 선택하는 수 )** Qd3 **( ... 더이상 lichess.org DB에 move가 존재하지 않아 제가 직접 백으로 두었습니다. )** 9. cxd3 Be6 10. Nxe6 fxe6 11. Qc2 Nb3 12. axb3 Bb4 13. Qxc6+ Kd8 14. Qxa8+ Kc7 15. Qxh8 Bc3 16. Qxg7+ Kd8 17. Qxf6+ Kc7 18. Qxe6 Bd4 19. Bd7 Kb8 20. Bc6 Bc3 21. Qd7 Bxd2+ 22. Bxd2 a6 23. Qb7#  1-0
+-역시 너무 많은 블런더 ..  !  
+
+### lichess.org DB ( 1800대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1470 )  vs. MyLittleEngine
+
+1.e4 c6 2. d4 d5 3. e5 Bf5 4. Nf3 e6 5. Bd3 **( 여기서부터, 기계학습으로 선택하는 수 )** Bxd3 6. Qxd3 a5 7. O-O Na6 8. Bg5 Qe7??? **( 더이상 lichess.org DB에 move가 존재하지 않아 제가 직접 백으로 두었습니다. )** 9. Bxe7 Nxe7 10. Qb3 Ng6 11. Qxb7 Nc7 12. Qxc7 Rc8 13. Qxc8+ Ke7 14. Ng5 Rg8 15. Nxh7 Nf4 16. Qc7+ Ke8 17. Qxc6+ Ke7 18. Qd6+ Ke8 19. Qc6+ Ke7 20. Nc3 Ne2+ 21. Nxe2 g5 22. Nf6 Kd8 23. Qd7#  1-0
+
 
 # 발전할 점
 
@@ -172,11 +234,14 @@ plus when it comes to a certain move, we use UCI or SAN form.
 ## 1. Gathering my actual games so that understand myself that which move I made in which position.
 
 To implement number 1. feature, I would use Neo4j Database.
-Using the APOC plugin in the Neo4j Database, we could collect games and moves played by a certain player with Chess.com API.
+Using the APOC plugin in the Neo4j Database, we could collect games and moves played by a certain player with Chess.com API. <sup>[1](#footnote_1)</sup>
 
 Graph the moves for each position based on the gathered games.
 ( A node is a position, and an edge is a move )
 
+![graph_hikaru](./pic/1.jpg)
+![pos_info](./pic/2.jpg)
+![move_info](./pic/3.jpg)
 
 ## 2. Based on my actual games, make a chess engine that has similar tendencies to me  ( & actually play games against that engine )
 
@@ -237,7 +302,7 @@ Therefore I would implement them in 2 models.
 
 I would thought that 8x8 size chess board should not be modification with size by pooling.
 so that I would apply Batch normalization only.
-I implemented it as watched Youtube Video.
+I implemented it as watched Youtube Video. <sup>[2](#footnote_2)</sup>
 
 ### Loss Function.
 
@@ -252,9 +317,65 @@ select a move where the sum of the from_tensor value and the to_tensor value is 
 Looking at the moves selected by an engine, some of them are logical and make sense,
 but in many cases they are illogical.
 
-1 ) Trained by data of a person with a Chess.com rating 1200s ( Rapid rule )
+* There is a free site that named lichess.org, which presents free database of played game in lichess.org
+* I used it for testing my engine. ( by piciking most played move in a certain position )
 
-2 ) Trained by data of a person with a Chess.com rating 3300s, FIDE rating 2800+, ( Professional chess player, Hikaru , in Blitz rule)
+![lichess.org_DB](./pic/4.jpg)
+
+
+## 1 ) Trained by data of a person with a Chess.com rating 1200s ( Rapid rule )
+batch size = 1024, epochs = 1000, lr = 1e-5
+
+### Engine plays White
+### MyLittleEngine vs. lichess.org DB ( near 1200 rapid rating approximately eqaul to Chess.com rapid rating 1025 <sup>[3](#footnote_3)</sup> ) 
+
+1.e4 e5 2. Nf3 Nc63. Bc4 Nf6 4. Ng5 d5 5. exd5 Nxd5 6. Nxf7 Kxf7 7. Qf3+ Ke8 8. Bxd5 Nd4 9. Qf7# 1-0
+
+-My Engine won ! only using moves in Neo4j DB
+
+### MyLittleEngine vs. lichess.org DB ( near 1800 rapid rating approximately eqaul to Chess.com rapid rating 1470 )
+
+1.e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6 8. Bd3 h6 9. Ne4 Nxe4 10. Bxe4 Bc5 **( Hereafter, Machine Learned Engine working )**11. Nc3 O-O 12. d3 f5 13. Bd5+??? **( Poor blunder made . .. so that there was no move in lichess.org DB. hereafter I played it myself as black )** cxd5 14. d4 Bxd4 15. Qxd4 exd4 16. Bf4 dxc3 17. bxc3 Qe7+ 18. Kd2 Nc4+ 19. Kd3 Ba6 20. g3 Nd6+ 21. c4 Qe4+ 22. Kd2 Nxc4+ 23. Kd1 Qxh1+ 24. Ke2 Qxa1 25. c3 Qxc3 26. a3 Ne5+ 27. Kd1 Qd3+ 28. Bd2 Rab8 29. g4 Rb1#   0-1
+
+
+----
+### Engine plays Black
+### lichess.org DB ( near 1200 rapid rating approximately eqaul to Chess.com rapid rating 1025 )  vs. MyLittleEngine
+
+
+1.e4 e6 2. d4 c5 3. Nf3 cxd4 4. Nxd4 Nc6 5. Nxc6 bxc6 6. Nc3 Nf6 7. Bg5 Bb4 8. e5 **( Hereafter, Machine Learned Engine working )**  Nd5??? 9. Bxd8 Bxc3+ **( And likewise, there was no move in lichess.org DB, so I started to play it myself as white )** 10. bxc3 Nc7 11. Bxc7 d5 12. exd6 Ba6 13. Bxa6 Rb8 14. Bxb8 O-O 15. d7 Rxb8 16. d8=Q+ Rxd8 17. Qxd8#    1-0
+
+
+### lichess.org DB ( near 1800 rapid rating approximately eqaul to Chess.com rapid rating 1470 )  vs. MyLittleEngine
+
+1.e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nc6 5. Nc3 Qc7 6. Be3 a6 7. Be2 **( Hereafter, Machine Learned Engine working )** Nf6 8. O-O Bd6 9. f4 O-O 10. e5 Bb4 **( There was no move in lichess.org DB, I started to play it myself as white )** 11. exf6 d6 12. Qd3 Ne5??? 13. fxe5 Qxc3??? 14. bxc3 Bc5 15. Rf3 Re8 16. Rg3 Bb6 17. Rxg7+ Kh8 18. Qxh7#   1-0
+
+
+## 2 ) Trained by data of a person with a Chess.com rating 3300s, FIDE rating 2800+, ( Professional chess player, Hikaru , in Blitz rule)
+batch size = 1024, epochs = 500, lr = 1e-5
+
+### Engine plays White
+### MyLittleEngine vs. lichess.org DB ( near 1200 rapid rating approximately eqaul to Chess.com rapid rating 1025 ) 
+
+1.e4 e5 2. Bc4 Nf6 3. d3 Bc5 4. Nf3 d6 5. c3 Ng4 6. Nbd2 Nxf2 **( Hereafter, Machine Learned Engine working )** 7. O-O??? Nxd1+ 8. Rf2 **( There was no move in lichess.org DB, I started to play it myself as black )** Bxf2+  9. Kf1 Qf6 10. Nb3 Bg4 11. Ke2 Bxf3+ 12. gxf3 Nxc3+ 13. Kxf2 Qh4+ 14. Ke3 Qxh2 15. Ba6??? bxa6 16. Na5 Qe2#  0-1
+
+### MyLittleEngine vs. lichess.org DB ( near 1800 rapid rating approximately eqaul to Chess.com rapid rating 1470 )
+
+1.e4 e5 2. Nc3 Nf6 3. Bc4 Bc5 4. d3 d6 5. Qf3 Bg4 **( Hereafter, Machine Learned Engine working )** 6. h3??? **( There was no move in lichess.org DB, I started to play it myself as black )** Bxf3 7. Nxf3 O-O 8. Be6 Qe7 9. O-O Qxe6 10. Re1 Nc6 11. Nh4 Nd4 12. Nd5 Nxd5 13. c3 Nf4 14. cxd4 Bxd4 15. g3 Nxd3 16. Re3 Bxe3 17. Bxe3 Qxh3 18. Ng6 fxg6 19. Re1 Nxe1 20. f3 Qg2#  0-1
+
+-so many blunders ..
+
+
+----
+### Engine plays Black
+### lichess.org DB ( near 1200 rapid rating approximately eqaul to Chess.com rapid rating 1025 )  vs. MyLittleEngine
+
+1.e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Na5 6. Bb5+ c6 7. dxc6 bxc6 8. Ba4 **( Hereafter, Machine Learned Engine working )** Qd3 **( ... and there was no data in lichess.org DB so I started to play it myself as white )** 9. cxd3 Be6 10. Nxe6 fxe6 11. Qc2 Nb3 12. axb3 Bb4 13. Qxc6+ Kd8 14. Qxa8+ Kc7 15. Qxh8 Bc3 16. Qxg7+ Kd8 17. Qxf6+ Kc7 18. Qxe6 Bd4 19. Bd7 Kb8 20. Bc6 Bc3 21. Qd7 Bxd2+ 22. Bxd2 a6 23. Qb7#  1-0
+-so many blunders, too !  
+
+### lichess.org DB ( near 1800 rapid rating approximately eqaul to Chess.com rapid rating 1470 )  vs. MyLittleEngine
+
+1.e4 c6 2. d4 d5 3. e5 Bf5 4. Nf3 e6 5. Bd3 **( Hereafter, Machine Learned Engine working )** Bxd3 6. Qxd3 a5 7. O-O Na6 8. Bg5 Qe7??? **( There was no move in lichess.org DB, I started to play it myself as white )** 9. Bxe7 Nxe7 10. Qb3 Ng6 11. Qxb7 Nc7 12. Qxc7 Rc8 13. Qxc8+ Ke7 14. Ng5 Rg8 15. Nxh7 Nf4 16. Qc7+ Ke8 17. Qxc6+ Ke7 18. Qd6+ Ke8 19. Qc6+ Ke7 20. Nc3 Ne2+ 21. Nxe2 g5 22. Nf6 Kd8 23. Qd7#  1-0
 
 
 # Improvements
@@ -276,3 +397,8 @@ Execute Neo4j DB, activate ( install ) APOC plugin
 ( If needed, set free ( set zero ) of dbms.memory.transaction.total.max to run properly)
 
 modify parameters in db.py , and execute and follow instructions
+
+------------------------------------
+<a name="footnote_1">1</a>: https://vladbatushkov.medium.com/one-month-graph-challenge-chess-44241a013378
+<a name="footnote_2">2</a>: https://youtu.be/aOwvRvTPQrs?si=asylQGXBEIyju6XP
+<a name="footnote_3">3</a>: https://chessgoals.com/rating-comparison/#lichesschesscom
