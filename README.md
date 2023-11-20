@@ -131,6 +131,7 @@ DB에 있는 수들을 제외하고, 기계학습을 통해 선택한 수들을 
 
 ## 1 ) Chess.com 레이팅 1200대인 사람이 Rapid ( 서로 10분 내외의 시간을 가지고 두는 게임 ) 룰을 바탕으로 둔 게임을 학습시켰을 때
 batch size = 1024, epochs = 1000, lr = 1e-5
+경기수 : 3,668 게임
 
 ### Engine이 백
 ### MyLittleEngine vs. lichess.org DB ( 1200대의 rapid 레이팅 = 대략 Chess.com rapid 레이팅 1025와 같음 <sup>[3](#footnote_3)</sup> ) 
@@ -193,6 +194,10 @@ b ) FEN을 CNN으로 학습시키기 좋게 encoding하였는데, encoding 하�
 
 c ) 수를 선택하는 과정에서 발전할 수 있는 것은 아닌지 ?
 
+정도 생각해볼 수 있었습니다.
+encoding 방법 등 대부분의 의사결정에서 '좀 더 그럴듯한' 방향을 선택했는데, 학술적인 기반이 있었더라면 더 좋았을 것 같습니다.
+이 프로젝트는 성능 향상을 목표로 한 것이 아니었습니다.
+변명하자면 그래서 더 선행 연구를 찾기에 어렵지 않았나 생각합니다.
 
 -------------------------------------
 
@@ -293,8 +298,10 @@ In total, I encoded FEN as a tensor with 14 channels, and each size is 8x8.
 
 ### move
 A move is represented in divided way, which are from_tensor ( 1x8x8 ) and to_tensor ( 1x8x8 )
-In the from tensor, select a square with a piece to move.
-In the to tensor, select a square to move the piece.
+In the from tensor, we would a square with a piece to move.
+
+In the to tensor, we would a square to move the piece.
+
 
 Therefore I would implement them in 2 models.
 
@@ -325,7 +332,7 @@ but in many cases they are illogical.
 
 ## 1 ) Trained by data of a person with a Chess.com rating 1200s ( Rapid rule )
 batch size = 1024, epochs = 1000, lr = 1e-5
-
+3,668 games.
 ### Engine plays White
 ### MyLittleEngine vs. lichess.org DB ( near 1200 rapid rating approximately eqaul to Chess.com rapid rating 1025 <sup>[3](#footnote_3)</sup> ) 
 
@@ -386,6 +393,11 @@ b ) I encoded FEN to train, but is there a better way to encode it ?
 
 c ) Is it possible to improve in selecting a move ?
 
+I would take "more plausible" way in most of my decisions through this project ( such as how to encode position ).
+and it would have been nice to have academic foundations.
+
+For excuse, The project was not aimed at improving performance.
+I think that is why it was harder to find prior research.
 
 ----------------------------------
 
