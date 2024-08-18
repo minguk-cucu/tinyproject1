@@ -152,7 +152,7 @@ def encodeFEN(fen):
 
 
 # literally get best move a engine could play
-def getBestMove(fen, model_from, model_to, device):
+def getBestMove(fen, model, device):
     x = torch.FloatTensor(encodeFEN(fen)).to(device)
     x = x.view(1,14,8,8) # notice its channel must be adjusted as CNN changes
     
@@ -164,14 +164,16 @@ def getBestMove(fen, model_from, model_to, device):
     for i in list(board.legal_moves):
         legalM.append(str(i))
 
-    fromList = model_from(x)
-    toList = model_to(x)
+    fromToList = model(x)
+
+       
+
 
     tensorValueList = []
     for i in legalM:
         i[:2] #from
         i[2:] #to
-        value = fromList[0][zz.get(i[:2])] + toList[0][zz.get(i[2:])]
+        value = fromToList[0][zz.get(i[:2])*64+zz.get(i[2:])]
         tensorValueList.append((i , value ))
     
 

@@ -146,11 +146,11 @@ class MyDataSet(Dataset):
 
 
 # do learning
-def train(session, from_model, to_model):
+def train(session, loaded_model,is_existed):
 
     ###
     batch_size = 2048
-    lr = 1e-5
+    lr = 1e-4
     epochs = 500
     ###
 
@@ -171,77 +171,72 @@ def train(session, from_model, to_model):
     x = []
     y_from = []
     y_to = []
-
+    y = []
     for item in l:
         frm = item["m.uci"][:2]
         to = item["m.uci"][2:4]
 
+        index = getBoardIndex(frm)*64 + getBoardIndex(to) ####### ::: important ::: 
+
         frm_index = getBoardIndex(frm)
         to_index = getBoardIndex(to)
-        if ( ( item["m.win"] + item["m.draw"] )/ item["games"] > 0.6 ):
+
+
+        if(item["games"] == 0 ) : continue
+
+        if ( ( item["m.win"] + item["m.draw"] )/ item["games"] > 0.6 ): # win-draw rate > 0.6
             for i in range(item["games"]):
                 x.append(encodeFEN(item["f.fen"]))
                 # y.append(oneHotEncoding(item["m.uci"]))
                 y_from.append(frm_index)
                 y_to.append(to_index)
+                y.append(index)
 
 
-    dataset_from = MyDataSet(x,y_from,device)
-    dataset_to = MyDataSet(x,y_to,device)
-
-    dataloader_from = DataLoader(dataset_from, batch_size=batch_size)
-    dataloader_to = DataLoader(dataset_to, batch_size=batch_size)
+    dataset = MyDataSet(x,y,device)
+    dataLoader = DataLoader(dataset,batch_size=batch_size)
+    
 
     ####### whether learning from scratch or not ###
+
+    if(is_existed):
+        model = torch.load(loaded_model)
+    else :
+        model = CNN.ChessNet().to(device)
 
     # model_from = CNN.ChessNet().to(device)
     # model_to = CNN.ChessNet().to(device)
 
-    model_from = torch.load(from_model)
-    model_to = torch.load(to_model)
+    # model_from = torch.load(from_model)
+    # model_to = torch.load(to_model)
 
     #####
 
-    model_from.train()
-    model_to.train()
-    
-    criterion_from = nn.CrossEntropyLoss().to(device)
-    optitmizer_from = optim.Adam(model_from.parameters(), lr= lr)
+    model.train()
 
-    criterion_to = nn.CrossEntropyLoss().to(device)
-    optitmizer_to = optim.Adam(model_to.parameters(), lr = lr)
+    criterion = nn.CrossEntropyLoss().to(device)
+    optimizer = optim.Adam(model.parameters(),lr = lr)
+
 
     for epoch in range(epochs+1):
-        for batch_idx, samples in enumerate(dataloader_from):
-            optitmizer_from.zero_grad()
+        for batch_idx, samples in enumerate(dataLoader):
+            optimizer.zero_grad()
 
-            X, Y = samples
+            X,Y = samples
             Y = Y.view(-1)
-            hypothesis = model_from(X)
-            cost_from = criterion_from(hypothesis, Y)
+            hypothesis = model(X)
+            cost = criterion(hypothesis, Y)
 
-            cost_from.backward()
-            optitmizer_from.step()
-
-        for batch_idx, samples in enumerate(dataloader_to):
-            optitmizer_to.zero_grad()
-            
-            X, Y = samples
-            Y = Y.view(-1)
-            hypothesis = model_to(X)
-            cost_to = criterion_to(hypothesis, Y)
-
-            cost_to.backward()
-            optitmizer_to.step()
+            cost.backward()
+            optimizer.step()
 
         
-        print(f"{epoch}/{epochs} _ cost_from : {cost_from.item()} _ cost_to : {cost_to.item()}")
+        print(f"{epoch}/{epochs} _ cost : {cost.item()}")
 
 
-    torch.save(model_from,from_model)
-    torch.save(model_to,to_model)
+    torch.save(model,loaded_model)
 
-    return model_from,model_to, device
+    return model, device
 
 
 

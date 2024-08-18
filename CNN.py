@@ -32,7 +32,7 @@ class ChessNet(nn.Module):
         self.inLayers = nn.Conv2d(14, self.hSize, 3, stride=1, padding=1)
         self.mList = nn.ModuleList([CNN() for i in range(self.hLayers)])
         self.oLayers = nn.Conv2d(self.hSize, 14, 3, stride=1, padding=1)
-        self.fc = nn.Linear(8 * 8 * 14, 64, bias=True)
+        self.fc = nn.Linear(8 * 8 * 14, 64*64, bias=True)
 
     def forward(self, x):
         x = self.inLayers(x)

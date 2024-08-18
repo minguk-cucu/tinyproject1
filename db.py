@@ -10,16 +10,16 @@ import time
 from CNN import CNN
 
 ############ parameters ####
-username = 'Hikaru'
-gameType = 'blitz'
+username = 'temp_user'
+gameType = 'rapid'
 rule = 'chess'
-date = '"2023/02" , "2023/03"' # DATE MUST FOLLOW THIS FORM : "YYYY/MM" ( including double quotes )
+date = '"2024/05"' # DATE MUST FOLLOW THIS FORM : "YYYY/MM" ( including double quotes )
 neo4j_port = 'bolt://localhost:7687'
 neo4j_user = 'neo4j'
 neo4j_pw = '0000'
 
-from_model = '.\\model_from_hikaru_.pt'
-to_model = '.\\model_to_hikaru_.pt'
+
+exist_model = '.\\model_'+username+'.pt'
 ############
 
 
@@ -53,7 +53,7 @@ def checkGameEnd(color):
         print("Can Claim Fifty-Move-Draw")
 
 # If a move is in DB, do Our own algorithm.
-def doOwnAlgorithm():
+def doOwnAlgorithm(session, comSide,model, device):
     global board
 
     winRate=[]
@@ -66,6 +66,7 @@ def doOwnAlgorithm():
         lose = move["m.lose"]
         draw = move["m.draw"]
         whole = win+lose+draw
+        if(whole == 0 ) : continue
         winRate.append((win / whole, whole)) # win rate --> (rate, denominator)
         dwinRate.append(((win + draw) / whole , whole)) # ( win + draw ) rate --> (rate, denominator)
 
@@ -77,7 +78,7 @@ def doOwnAlgorithm():
     if ( p == -1 ): p = pickOne(dwinRate,0.0)
     if ( p == -1 ): 
         #p = pickOne(dwinRate,-1) # pick anything in my DB. ( instead, how about pick one from general DB ? or do ML )
-        doML()
+        doML(model, device)
     else:
         print(moveList[p]["m.san"])
         board.push_san(moveList[p]["m.san"])
@@ -104,13 +105,13 @@ def pickOne(arr, rate): # pick one of items ( > rate // greater than rate )
             return idx  # return idx of picked one ( should be converted by moveList[x]["m.san"])
 
 # If a move is NOT in DB, we do ML ( not actually do it in this function, just named ) 
-def doML():
-    p = evaluate.getBestMove(board.fen(), model_from,model_to, device)
+def doML(model, device):
+    p = evaluate.getBestMove(board.fen(), model, device)
     print(f"ML : {p}")
     board.push_uci(p)
 
 # Convert games into Graph
-def convertMoves(color):
+def convertMoves(color, session):
     if ( color == 'WHITE' ):
         print("WHITE encoding . . .")
         q = 'MATCH (g:Game { whiteUser : "' + username +'"} ) RETURN g.moves' ## WHEN YOU PLAYED WHITE ONE ##########
@@ -235,183 +236,227 @@ def convertMoves(color):
 
 
 #################################### main ###############################################
-driver = GraphDatabase.driver(neo4j_port, auth = (neo4j_user, neo4j_pw))
-session = driver.session()
 
-
-q = 'MATCH ( g:Game ) DELETE g'
-session.run(q)
-
-q = 'CREATE INDEX position_att IF NOT EXISTS FOR (f:Position) ON (f.fen, f.win, f.lose, f.draw, f.color, f.turn)'
-session.run(q)
-q = 'CREATE INDEX move_att IF NOT EXISTS FOR (m:Move) ON (m.uci, m.san, m.color, m.win, m.lose, m.draw)'
-session.run(q)
-
-print("Fetching from Chess.com database")
-
-# IF WE WANT TO CHANGE DATE BOUNDARIES, 
-q = '''UNWIND [ ''' + date + ''' ] as ym
- WITH ("https://api.chess.com/pub/player/''' + username + '''/games/" + ym) as url
- CALL apoc.load.json(url) YIELD value
- UNWIND value.games as game
- WITH game.time_class as type, game.pgn as raw, game.white.result as whiteResult, game.white.username as whiteUser, game.black.result as blackResult, game.black.username as blackUser, game.rules as rule
- WHERE type = "''' + gameType + '''" AND rule = "''' + rule + '''"
- WITH whiteUser, whiteResult, blackUser, blackResult, apoc.text.replace(coalesce(apoc.text.regexGroups(raw, "(\\n\\n)(.+)( (0|1|(1/2))-(0|1|(1/2)))")[0][2], ""), "(\\{.{1,17}\\})", "") as moves
- WHERE moves <> ""
- MERGE (g:Game { whiteUser: whiteUser, whiteResult: whiteResult, blackUser: blackUser, blackResult: blackResult, moves: moves })'''
-
-session.run(q)
-
-print("Fetching games from Chess.com has Done !")
-t1 = time.time()
-print("Convert Games into Graph . . . ")
-board =chess.Board()
-
-convertMoves("WHITE")
-convertMoves("BLACK")
-
-
-print("Converting has Done !")
-t2 = time.time()
-print(f"Converting time : {t2-t1} s")
-#######################################################
-
-
-## ML ##
-t1 = time.time()
-print("doing ML based on your records . . ")
-
-##### wheter learning from scratch or not
-
-model_from,model_to, device = train.train(session, from_model, to_model)
-
-# model_from = torch.load(from_model)
-# model_to = torch.load(to_model)
-# device = "cuda"
-
-####
-
-print("ML done")
-t2 = time.time()
-print(f"ML time : {t2-t1} s")
-
-model_from.eval()
-model_to.eval()
-####
-
-# play a game
-while(1):
-    playerSide = input("Which side would you like to play ? : 1. WHITE 2. BLACK ( you can either choose number ( 1 or 2 ) or type color ( WHITE or BLACK) : ")
-    if ( playerSide == "WHITE" or playerSide == "BLACK" or playerSide == "1" or playerSide == "2" ):
-        break
-    else:
-        print("You should give answer in a proper way")
-
-
-#PLAYER plays WHITE
-#COM plays BLACK
-if ( playerSide == "WHITE" or playerSide == "1" ):
-
-    playerSide = "WHITE"
-    comSide = "BLACK"
-
+def main() :
+    driver = GraphDatabase.driver(neo4j_port, auth = (neo4j_user, neo4j_pw))
+    session = driver.session()
+    global board
     board = chess.Board()
-    q = 'MATCH (f:Position { triv : "initial", color : "BLACK" }) RETURN f'
-    if len(list(session.run(q))) == 0:
-        #error
-        print("There is no data with Starting Position == ERROR")
-        exit(-1)
-    else:
-        #on the way
-        print(board)
+
+    while(1):
+        program_mode = input('(1) Save & Game (2) Only Save (3) Only Game ~ ')
+        if(program_mode == '1' or program_mode == '2' or program_mode == '3'):
+            break
+
+
+    while(1):
+        want_to_load_existed_model = input('Use Existed Model '+ exist_model+'? if not, ML must be done.(y/n) ~ ')
+        if(want_to_load_existed_model == 'y' or want_to_load_existed_model == 'Y'):
+            want_to_load_existed_model = True
+            break
+        elif(want_to_load_existed_model == 'n' or want_to_load_existed_model == 'N'):
+            want_to_load_existed_model = False
+            break
+        else:
+            continue
+
+    if(program_mode != '3'):
+        q = 'MATCH ( g:Game ) DELETE g'
+        session.run(q)
+
+        q = 'CREATE INDEX position_att IF NOT EXISTS FOR (f:Position) ON (f.fen, f.win, f.lose, f.draw, f.color, f.turn)'
+        session.run(q)
+        q = 'CREATE INDEX move_att IF NOT EXISTS FOR (m:Move) ON (m.uci, m.san, m.color, m.win, m.lose, m.draw)'
+        session.run(q)
+
+        print("Fetching from Chess.com database")
+
+        # IF WE WANT TO CHANGE DATE BOUNDARIES, 
+        q = '''UNWIND [ ''' + date + ''' ] as ym
+        WITH ("https://api.chess.com/pub/player/''' + username + '''/games/" + ym) as url
+        CALL apoc.load.json(url) YIELD value
+        UNWIND value.games as game
+        WITH game.time_class as type, game.pgn as raw, game.white.result as whiteResult, game.white.username as whiteUser, game.black.result as blackResult, game.black.username as blackUser, game.rules as rule, game.initial_setup as initsetup
+        WHERE type = "''' + gameType + '''" AND rule = "''' + rule + '''" AND initsetup contains "''' + board.fen().split(' ')[0] + '''"
+        WITH whiteUser, whiteResult, blackUser, blackResult, apoc.text.replace(coalesce(apoc.text.regexGroups(raw, "(\\n\\n)(.+)( (0|1|(1/2))-(0|1|(1/2)))")[0][2], ""), "(\\{.{1,17}\\})", "") as moves
+        WHERE moves <> ""
+        MERGE (g:Game { whiteUser: whiteUser, whiteResult: whiteResult, blackUser: blackUser, blackResult: blackResult, moves: moves })'''
+
+        session.run(q)
+
+        print("Fetching games from Chess.com has Done !")
+        t1 = time.time()
+        print("Convert Games into Graph . . . ")
         
-        playersMove = input("Your Move : ")
-        ## here, there must be Legal Move check. but chess.py does it automatically
-        while(playersMove not in str(board.legal_moves)):
-            playersMove = input("Your Move is illegal, please do proper move : ")
-        board.push_san(playersMove)
 
-        checkGameEnd("WHITE")
-        print(board)
+        convertMoves("WHITE", session)
+        convertMoves("BLACK", session)
 
-        doOwnAlgorithm()
-        checkGameEnd('BLACK')
 
-        print(board)
+        print("Converting has Done !")
+        t2 = time.time()
+        print(f"Total Converting time : {t2-t1} s")
+    #######################################################
+
+    if(program_mode != '2'):
+
+
+        ## ML ##
+        t1 = time.time()
+        print("doing ML based on your records . . ")
+
+        ##### wheter learning from scratch or not
+
+        if(want_to_load_existed_model):
+            model = torch.load(exist_model)
+            device = "cuda"
+        else:
+            model, device = train.train(session, loaded_model=exist_model,is_existed = want_to_load_existed_model)
+
+
+        ####
+
+        print("ML done")
+        t2 = time.time()
+        print(f"ML time : {t2-t1} s")
+
+        model.eval()
+        ####
+
+        # play a game
         while(1):
-            playersMove = input("Your Move : ")
-            while(playersMove not in str(board.legal_moves)):
-                playersMove = input("Your Move is illegal, please do proper move : ")
-            ## here, there must be Legal Move check.
-            board.push_san(playersMove)
-            print(board)
-            checkGameEnd('WHITE')
-            
-            
-
-            q = 'MATCH (f:Position { fen : "' + board.fen() + '", color : "BLACK"}) RETURN f'
-            if len(list(session.run(q))) == 0:
-                # there is no data with current position in DB. do ML
-                doML()
+            playerSide = input("Which side would you like to play ? : 1. WHITE 2. BLACK ( you can either choose number ( 1 or 2 ) or type color ( WHITE or BLACK) : ")
+            if ( playerSide == "WHITE" or playerSide == "BLACK" or playerSide == "1" or playerSide == "2" ):
+                break
             else:
-                # My Own Algorithm
-                doOwnAlgorithm()
+                print("You should give answer in a proper way")
 
-            print(board)
-            checkGameEnd('BLACK')
 
-#PLAYER plays BLACK
-#COM plays WHITE
-if ( playerSide == "BLACK" or playerSide == "2" ):
+        #PLAYER plays WHITE
+        #COM plays BLACK
+        if ( playerSide == "WHITE" or playerSide == "1" ):
 
-    playerSide = "BLACK"
-    comSide = "WHITE"
+            playerSide = "WHITE"
+            comSide = "BLACK"
 
-    board = chess.Board()
-    q = 'MATCH (f:Position { triv : "initial", color : "WHITE" }) RETURN f'
-    if len(list(session.run(q))) == 0:
-        # error
-        print("There is no data with Starting Position == ERROR")
-        exit(-1)
-    else:
-        #on the way
-        doOwnAlgorithm()
-
-        print(board)
-        checkGameEnd('WHITE')
-        
-        playersMove = input("Your Move : ")
-        ## here, there must be Legal Move check. but chess.py does it automatically
-        while(playersMove not in str(board.legal_moves)):
-            playersMove = input("Your Move is illegal, please do proper move : ")
-        board.push_san(playersMove)
-        
-        print(board)
-        checkGameEnd('BLACK')
-        
-        
-        while(1):
-            q = 'MATCH (f:Position { fen : "' + board.fen() + '", color : "WHITE"}) RETURN f'
+            board = chess.Board()
+            q = 'MATCH (f:Position { triv : "initial", color : "BLACK" }) RETURN f'
             if len(list(session.run(q))) == 0:
-                # there is no data with current position in DB. do ML
-                doML()
+                #error
+                print("There is no data with Starting Position == ERROR")
+                exit(-1)
             else:
-                # My Own Algorithm
-                doOwnAlgorithm()
+                #on the way
+                print(board)
+                
+                playersMove = input("Your Move : ")
+                ## here, there must be Legal Move check. but chess.py does it automatically
+                while(playersMove not in str(board.legal_moves)):
+                    playersMove = input("Your Move is illegal, please do proper move : ")
+                board.push_san(playersMove)
 
-            print(board)
-            checkGameEnd('WHITE')
+                checkGameEnd("WHITE")
+                print(board)
+
+                doOwnAlgorithm(
+                    session=session, 
+                    comSide=comSide, 
+                    model=model,
+                    device=device)
+                checkGameEnd('BLACK')
+
+                print(board)
+                while(1):
+                    playersMove = input("Your Move : ")
+                    while(playersMove not in str(board.legal_moves)):
+                        playersMove = input("Your Move is illegal, please do proper move : ")
+                    ## here, there must be Legal Move check.
+                    board.push_san(playersMove)
+                    print(board)
+                    checkGameEnd('WHITE')
+                    
+                    
+
+                    q = 'MATCH (f:Position { fen : "' + board.fen() + '", color : "BLACK"}) RETURN f'
+                    if len(list(session.run(q))) == 0:
+                        # there is no data with current position in DB. do ML
+                        doML(model, device)
+                    else:
+                        # My Own Algorithm
+                        doOwnAlgorithm(
+                            session=session, 
+                            comSide=comSide, 
+                            model=model,
+                            device=device)
+
+                    print(board)
+                    checkGameEnd('BLACK')
+
+        #PLAYER plays BLACK
+        #COM plays WHITE
+        if ( playerSide == "BLACK" or playerSide == "2" ):
+
+            playerSide = "BLACK"
+            comSide = "WHITE"
+
+            board = chess.Board()
+            q = 'MATCH (f:Position { triv : "initial", color : "WHITE" }) RETURN f'
+            if len(list(session.run(q))) == 0:
+                # error
+                print("There is no data with Starting Position == ERROR")
+                exit(-1)
+            else:
+                #on the way
+                doOwnAlgorithm(
+                    session=session, 
+                    comSide=comSide, 
+                    model=model,
+                    device=device)
+
+                print(board)
+                checkGameEnd('WHITE')
+                
+                playersMove = input("Your Move : ")
+                ## here, there must be Legal Move check. but chess.py does it automatically
+                while(playersMove not in str(board.legal_moves)):
+                    playersMove = input("Your Move is illegal, please do proper move : ")
+                board.push_san(playersMove)
+                
+                print(board)
+                checkGameEnd('BLACK')
+                
+                
+                while(1):
+                    q = 'MATCH (f:Position { fen : "' + board.fen() + '", color : "WHITE"}) RETURN f'
+                    if len(list(session.run(q))) == 0:
+                        # there is no data with current position in DB. do ML
+                        doML(model, device)
+                    else:
+                        # My Own Algorithm
+                        doOwnAlgorithm(
+                            session=session, 
+                            comSide=comSide, 
+                            model=model,
+                            device=device)
+
+                    print(board)
+                    checkGameEnd('WHITE')
+                
+                    playersMove = input("Your Move : ")
+                    ## here, there must be Legal Move check.
+                    while(playersMove not in str(board.legal_moves)):
+                        playersMove = input("Your Move is illegal, please do proper move : ")
+                    board.push_san(playersMove)    
+                    
+                    print(board)
+                    checkGameEnd('BLACK')
         
-            playersMove = input("Your Move : ")
-            ## here, there must be Legal Move check.
-            while(playersMove not in str(board.legal_moves)):
-                playersMove = input("Your Move is illegal, please do proper move : ")
-            board.push_san(playersMove)    
-            
-            print(board)
-            checkGameEnd('BLACK')
- 
 
 
-session.close()
+    session.close()
 
+
+
+
+if __name__ == "__main__":
+    main()
