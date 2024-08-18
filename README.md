@@ -9,6 +9,10 @@ If you have any question or anything, please feel free to contact me : minkuk011
 윈도우 11 환경에서 개발하고 실행하였습니다.
 Programmed & Executed in Winodows 11 environment
 
+Neo4j의 버전은 5.3.0 입니다.
+Version of Neo4j is 5.3.0
+
+
 # 개요
 
 저는 종종 유도나 체스같이 1:1로 상대가 꼭 필요한 게임에서, 내가 나를 상대로 싸울 수 있으면 좋겠다고 생각했습니다.
@@ -94,15 +98,12 @@ position에 해당하는 FEN을 적절히 encoding 하여 입력으로 하고,
 최종적으로 14개의 channel을 가지는 8x8 size의 tensor를 입력으로 줍니다.
 
 ### move
-출력이 되는 move는 from tensor ( 1x8x8 ), to tensor ( 1x8x8 )로 나누어 표현합니다.
-from tensor에서 움직일 기물이 있는 칸을 고르고,
-to tensor에서 from tensor에서 고른 기물을 움직일 칸을 고릅니다.
-
-
-하여 총 2개의 model로 구현하였습니다.
+출력이 되는 move는 size가 4096( = 64*64 )인 Fully Connected Layer로 표현합니다.
+이동시키고자 하는 기물의 칸을 나타내는 from_index와, 그 기물이 이동할 칸을 나타내는 to_index가 있다고 했을 때,
+출력의 one-hot index는 from_index * 64 + to_index 로 나타낼 수 있습니다.
 
 ### CNN
-은 pooling 을 하여 기존의 8x8 사이즈의 체스판 size를 변형시키면 안 된다고 판단하였습니다.
+CNN이 진행되면서 pooling 을 하여 기존의 8x8 사이즈의 체스판 size를 변형시키면 안 된다고 판단하였습니다.
 Batch normalization 만 진행하였고 이는 youtube를 참고하여 구현하였습니다. <sup>[2](#footnote_2)</sup>
 
 ### Loss Function
@@ -297,13 +298,9 @@ required for both colors, we need 2 more channels to do so.
 In total, I encoded FEN as a tensor with 14 channels, and each size is 8x8.
 
 ### move
-A move is represented in divided way, which are from_tensor ( 1x8x8 ) and to_tensor ( 1x8x8 )
-In the from tensor, we would a square with a piece to move.
-
-In the to tensor, we would a square to move the piece.
-
-
-Therefore I would implement them in 2 models.
+The output move is represented by a Fully Connected Layer of size 4096 ( = 64*64 ).
+Given a from_index representing the square of the piece you want to move, and a to_index representing the square where the piece will move to,
+then lastly, The one-hot index of the output can be represented as from_index * 64 + to_index.
 
 ### CNN
 
